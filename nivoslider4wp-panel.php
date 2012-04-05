@@ -6,19 +6,26 @@
 		$url = get_option('siteurl') . '/wp-content/plugins/' . plugin_basename(dirname(__FILE__));
 		$ns4wp_plugindir = ABSPATH.'wp-content/plugins/nivo-slider-for-wordpress/';
 		$ns4wp_pluginurl = $url;
-		$ns4wp_filesdir = ABSPATH.'/wp-content/uploads/nivoslider4wp_files/';
-		$ns4wp_filesurl = get_option('siteurl').'/wp-content/uploads/nivoslider4wp_files/';
+		/* BEGIN S3 stuff */
+		$ns4wp_relativefiledir = '/wp-content/uploads/nivoslider4wp_files/';
+		$ns4wp_filesdir = realpath(ABSPATH.$ns4wp_relativefiledir).'/';
+		//$ns4wp_filesurl = get_option('siteurl').$ns4wp_relativefiledir;
+		//$ns4wp_filesurl = rtrim('http://d3g0qcetvss1dg.cloudfront.net', '/') . $ns4wp_relativefiledir;
+		$ns4wp_filesurl = get_option('nivoslider4wp_aws') && get_option('nivoslider4wp_awsDomain') ?
+			(rtrim(get_option('nivoslider4wp_awsDomain'), '/') . $ns4wp_relativefiledir) :
+			(get_option('siteurl').$ns4wp_relativefiledir);
+		/* END S3 stuff */
 ?>
-<?php 
-		   $ns4wp_x = "empty"; 
-		   $ns4wp_y= "empty"; 
-		   $ns4wp_x2= "empty"; 
+<?php
+		   $ns4wp_x = "empty";
+		   $ns4wp_y= "empty";
+		   $ns4wp_x2= "empty";
 		   $ns4wp_y2= "empty";
 ?>
 <link rel="stylesheet" type="text/css" href="<?php echo $ns4wp_pluginurl; ?>/css/nivoslider4wp-painel.css" />
 <script type="text/javascript" src="<?php echo $ns4wp_pluginurl; ?>/js/functions.js"></script>
 <div class="wrap">
-<h2 id="all-schemes"><?php _e('Nivo Slider For WordPress - Add Image','nivoslider4wp'); ?></h2>			
+<h2 id="all-schemes"><?php _e('Nivo Slider For WordPress - Add Image','nivoslider4wp'); ?></h2>
   <?php
 
 		if (isset($_GET['remove'])) {
@@ -26,9 +33,30 @@
 			$wpdb->query("DELETE FROM {$wpdb->prefix}nivoslider4wp WHERE nivoslider4wp_id = $_GET[remove]");
 			if (is_file($ns4wp_filesdir.$_GET['remove'].'_o.'.$ns4wp_file_type)) { unlink($ns4wp_filesdir.$_GET['remove'].'_o.'.$ns4wp_file_type); }
 			if (is_file($ns4wp_filesdir.$_GET['remove'].'_s.'.$ns4wp_file_type)) { unlink($ns4wp_filesdir.$_GET['remove'].'_s.'.$ns4wp_file_type); }
+
+			/* BEGIN S3 stuff */
+			if ( get_option('nivoslider4wp_aws') )
+			{
+				//Set up connection
+				require_once(dirname(__FILE__).'/lib.s3.php');
+				$s3 = new TanTanS3(get_option('nivoslider4wp_awsAccessKey'), get_option('nivoslider4wp_awsSecretKey'));
+
+				//Delete original image
+				$s3->deleteObject(
+					get_option('nivoslider4wp_awsBucket'),
+					ltrim($ns4wp_relativefiledir, '/') . $_GET['remove'].'_o.'.$ns4wp_file_type
+				);
+				//Delete the resized image
+				$s3->deleteObject(
+					get_option('nivoslider4wp_awsBucket'),
+					ltrim($ns4wp_relativefiledir, '/') . $_GET['remove'].'_s.'.$ns4wp_file_type
+				);
+			}
+			/* END S3 stuff */
+
 			unset($_GET);
 		}
-		
+
 		if (isset($_GET['disable'])) {
 			//$ns4wp_file_type = $wpdb->get_var("SELECT nivoslider4wp_type FROM {$wpdb->prefix}nivoslider4wp WHERE nivoslider4wp_id = '$_GET[disable]'");
 			$wpdb->query("UPDATE {$wpdb->prefix}nivoslider4wp SET nivoslider4wp_image_status=0 WHERE nivoslider4wp_id = $_GET[disable]");
@@ -36,7 +64,7 @@
 			//if (is_file($ns4wp_filesdir.$_GET['disable'].'_s.'.$ns4wp_file_type)) { unlink($ns4wp_filesdir.$_GET['disable'].'_s.'.$ns4wp_file_type); }
 			unset($_GET);
 		}
-		
+
 		if (isset($_GET['enable'])) {
 			//$ns4wp_file_type = $wpdb->get_var("SELECT nivoslider4wp_type FROM {$wpdb->prefix}nivoslider4wp WHERE nivoslider4wp_id = '$_GET[disable]'");
 			$wpdb->query("UPDATE {$wpdb->prefix}nivoslider4wp SET nivoslider4wp_image_status=1 WHERE nivoslider4wp_id = $_GET[enable]");
@@ -55,16 +83,25 @@
 		}
 
 		if (isset($_POST['x'])) {
+			if ( get_option('nivoslider4wp_aws') )
+				$imageurl =
+					$ns4wp_filesurl .
+					$_POST['nivoslider4wp_file_id'].'_o.'.$_POST['nivoslider4wp_file_type'];
+			else
+				$imageurl =
+					$ns4wp_filesdir .
+					$_POST['nivoslider4wp_file_id'].'_o.'.$_POST['nivoslider4wp_file_type'];
+
 			if($_POST['nivoslider4wp_file_type'] == 'jpeg')
 			{
-				$ns4wp_image_src = imagecreatefromjpeg($ns4wp_filesdir.$_POST['nivoslider4wp_file_id'].'_o.'.$_POST['nivoslider4wp_file_type']);
+				$ns4wp_image_src = imagecreatefromjpeg($imageurl);
 				$ns4wp_image_crop = imagecreatetruecolor(get_option('nivoslider4wp_width'), get_option('nivoslider4wp_height'));
 				imagecopyresampled($ns4wp_image_crop, $ns4wp_image_src, 0, 0, $_POST['x'],$_POST['y'], get_option('nivoslider4wp_width'), get_option('nivoslider4wp_height'), $_POST['w'], $_POST['h']);
 				imagejpeg($ns4wp_image_crop,$ns4wp_filesdir.$_POST['nivoslider4wp_file_id'].'_s.'.$_POST['nivoslider4wp_file_type'], get_option('nivoslider4wp_imageQuality'));
 			}
 			else if($_POST['nivoslider4wp_file_type'] == 'png')
 			{
-				$ns4wp_image_src = imagecreatefrompng($ns4wp_filesdir.$_POST['nivoslider4wp_file_id'].'_o.'.$_POST['nivoslider4wp_file_type']);
+				$ns4wp_image_src = imagecreatefrompng($imageurl);
 				$ns4wp_image_crop = imagecreatetruecolor(get_option('nivoslider4wp_width'), get_option('nivoslider4wp_height'));
 				imagecopyresampled($ns4wp_image_crop, $ns4wp_image_src, 0, 0, $_POST['x'],$_POST['y'], get_option('nivoslider4wp_width'), get_option('nivoslider4wp_height'), $_POST['w'], $_POST['h']);
 				if(get_option('nivoslider4wp_imageQuality') > 90)
@@ -79,11 +116,41 @@
 			}
 			else if($_POST['nivoslider4wp_file_type'] == 'gif')
 			{
-				$ns4wp_image_src = imagecreatefromgif($ns4wp_filesdir.$_POST['nivoslider4wp_file_id'].'_o.'.$_POST['nivoslider4wp_file_type']);
+				$ns4wp_image_src = imagecreatefromgif($imageurl);
 				$ns4wp_image_crop = imagecreatetruecolor(get_option('nivoslider4wp_width'), get_option('nivoslider4wp_height'));
 				imagecopyresampled($ns4wp_image_crop, $ns4wp_image_src, 0, 0, $_POST['x'],$_POST['y'], get_option('nivoslider4wp_width'), get_option('nivoslider4wp_height'), $_POST['w'], $_POST['h']);
 				imagegif($ns4wp_image_crop,$ns4wp_filesdir.$_POST['nivoslider4wp_file_id'].'_s.'.$_POST['nivoslider4wp_file_type']);
 			}
+
+			/* BEGIN S3 stuff */
+			if ( get_option('nivoslider4wp_aws') )
+			{
+				$imagepath = $ns4wp_filesdir.$_POST['nivoslider4wp_file_id'].'_s.'.$_POST['nivoslider4wp_file_type'];
+
+				//Get mime type
+				$imageinfo = getimagesize( $imagepath );
+				if ( !is_array($imageinfo) || !isset($imageinfo['mime']) )
+					$imageinfo = array('mime' => 'image/jpeg');
+
+				//Set up connection
+				require_once(dirname(__FILE__).'/lib.s3.php');
+				$s3 = new TanTanS3(get_option('nivoslider4wp_awsAccessKey'), get_option('nivoslider4wp_awsSecretKey'));
+				$s3->setOptions(array(
+					'Expires' => 315360000,
+				));
+
+				//Push the image to S3
+				$s3->putObjectStream(get_option('nivoslider4wp_awsBucket'), ltrim($ns4wp_relativefiledir, '/') . basename($imagepath), array(
+					'name' => basename($ns4wp_original_image_dir),
+					'type' => $imageinfo['mime'],
+					'tmp_name' => $imagepath,
+					'error' => 0,
+					'size' => filesize($imagepath),
+				));
+
+				unlink($imagepath);
+			}
+			/* END S3 stuff */
 
 			$values = array(
 				'nivoslider4wp_x' => $_POST['x'],
@@ -96,9 +163,9 @@
 				'nivoslider4wp_image_link' => $_POST['nivoslider4wp_image_link'],
 				'nivoslider4wp_image_status' => 1
 			);
-			
+
 			$conditions = array( 'nivoslider4wp_id' => $_POST['nivoslider4wp_file_id']);
-			
+
 			$values_types = array('%d','%d','%d','%d','%d','%d','%s','%s','%s','%s');
 			$conditions_types = array('%d');
 			$wpdb->update($wpdb->prefix.'nivoslider4wp', $values, $conditions, $values_types, $conditions_types);
@@ -144,6 +211,35 @@
 						imagegif($ns4wp_image_res, $ns4wp_original_image_dir);
 					}
 				}
+
+				/* BEGIN S3 stuff */
+				if ( get_option('nivoslider4wp_aws') )
+				{
+					//Get mime type
+					$imageinfo = getimagesize( $ns4wp_original_image_dir );
+					if ( !is_array($imageinfo) || !isset($imageinfo['mime']) )
+						$imageinfo = array('mime' => 'image/jpeg');
+
+					//Set up connection
+					require_once(dirname(__FILE__).'/lib.s3.php');
+					$s3 = new TanTanS3(get_option('nivoslider4wp_awsAccessKey'), get_option('nivoslider4wp_awsSecretKey'));
+					$s3->setOptions(array(
+						'Expires' => 315360000,
+					));
+
+					//Push the image to S3
+					$s3->putObjectStream(get_option('nivoslider4wp_awsBucket'), ltrim($ns4wp_relativefiledir, '/') . basename($ns4wp_original_image_dir), array(
+						'name' => basename($ns4wp_original_image_dir),
+						'type' => $imageinfo['mime'],
+						'tmp_name' => $ns4wp_original_image_dir,
+						'error' => 0,
+						'size' => filesize($ns4wp_original_image_dir),
+					));
+
+					unlink($ns4wp_original_image_dir);
+				}
+				/* END S3 stuff */
+
 			} elseif (isset($_GET['edit'])) {
 				$item = $wpdb->get_row("SELECT * FROM {$wpdb->prefix}nivoslider4wp WHERE nivoslider4wp_id = '$_GET[edit]'");
 				$ns4wp_file_type[1] = $item->nivoslider4wp_type;
@@ -153,7 +249,7 @@
 				$ns4wp_y2 = $item->nivoslider4wp_y2;
 				$ns4wp_w = $item->nivoslider4wp_w;
 				$ns4wp_h = $item->nivoslider4wp_h;
-				
+
 				$ns4wp_image_link = $item->nivoslider4wp_image_link;
 				$ns4wp_file_text_headline = $item->nivoslider4wp_text_headline;
 				$ns4wp_file_id = $_GET['edit'];
@@ -161,9 +257,12 @@
 				$ns4wp_original_image_url = $ns4wp_filesurl.$ns4wp_file_id.'_o.'.$ns4wp_file_type[1];
 			}
 
-			list($ns4wp_file_width,$ns4wp_file_height) = getimagesize($ns4wp_original_image_dir);
+			list($ns4wp_file_width,$ns4wp_file_height) = getimagesize(get_option('nivoslider4wp_aws') ?
+				($ns4wp_filesurl . basename($ns4wp_original_image_dir)) :
+				$ns4wp_original_image_dir
+			);
 	?>
-										                                   
+
   <script src="<?php echo $ns4wp_pluginurl; ?>/js/jquery.min.js"></script>
   <script src="<?php echo $ns4wp_pluginurl; ?>/js/jquery.Jcrop.js"></script>
   <link rel="stylesheet" href="<?php echo $ns4wp_pluginurl; ?>/css/jquery.Jcrop.css" type="text/css" />
@@ -193,7 +292,7 @@
 											} else {
 												echo $ns4wp_x2;
 											}
-                                          ?>,    
+                                          ?>,
 										<?php if ($ns4wp_y2 == "empty") {
 												echo 50;
 											} else {
@@ -225,14 +324,14 @@
 					$j('#w').val(c.w);
 					$j('#h').val(c.h);
 				};
-				
-				
+
+
 					var $b = jQuery.noConflict();
 						$b(document).ready(function() {
 						// Initialise the table
 						$b("#table-1").tableDnD();
 					});
-			
+
             </script>
   <h3>
     <?php _e('Original image', 'nivoslider4wp'); ?>
@@ -249,7 +348,7 @@
 		<textarea name="nivoslider4wp_file_text_headline" id="nivoslider4wp_file_text_headline" class="edit"><?php echo stripslashes(@$ns4wp_file_text_headline); ?></textarea>
 	<label for="nivoslider4wp_image_link"><?php _e('Image link, please use <strong>http://</strong>(optional)', 'nivoslider4wp'); ?></label>
 		<input type="text" name="nivoslider4wp_image_link" id="nivoslider4wp_image_link" value="<?php echo stripslashes(@$ns4wp_image_link); ?>" class="edit" />
-	
+
 	<input type="hidden" id="x" name="x" />
     <input type="hidden" id="y" name="y" />
     <input type="hidden" id="x2" name="x2" />
@@ -269,6 +368,9 @@
 	<div class="alignleft actions">
 			<a href="#add_new" class="button-secondary action" onClick="Show('nivoslider4wp_addnew'); return false;"><?php _e('Add New image','nivoslider4wp'); ?></a>
 		</div>
+	<?php if ( get_option('nivoslider4wp_aws') ): ?>
+		<small style='line-height:30px;display:inline-block'><strong>Note:</strong> When using Amazon CloudFront, the image thumbnails below might not update immediately after editing.</small>
+	<?php endif; ?>
   </div>
   <div id="nivoslider4wp_addnew" class="nivoslider4wp_box">
     <?php if (substr(decoct(fileperms($ns4wp_filesdir)),2) != '777') : ?>
@@ -333,9 +435,9 @@
         </script>
         <style>
             .tDnD_whileDrag{background:#ececec;}
-        </style>		 
+        </style>
       <tbody id="table-1">
-      
+
 		<?php $items = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}nivoslider4wp WHERE nivoslider4wp_image_status=1 OR nivoslider4wp_image_status IS NULL ORDER BY nivoslider4wp_order,nivoslider4wp_id ASC"); ?>
         <?php if ($items) : ?>
         <?php foreach ($items as $item) : ?>
@@ -348,7 +450,7 @@
 			<?php _e('Image Link to :','nivoslider4wp'); ?><a href="<?php echo stripslashes($item->nivoslider4wp_image_link); ?>"><?php echo stripslashes($item->nivoslider4wp_image_link); ?></a>
 			<?php } ?>
 			</td>
-          <td><small> 
+          <td><small>
 			<a href="admin.php?page=nivo-slider-for-wordpress/nivoslider4wp.php&edit=<?php echo $item->nivoslider4wp_id; ?>"><img src="<?php echo $ns4wp_pluginurl."/img/edit.png" ?>" alt="<?php _e('Edit','nivoslider4wp'); ?>" title="<?php _e('Edit','nivoslider4wp'); ?>" /></a>
 			<a href="admin.php?page=nivo-slider-for-wordpress/nivoslider4wp.php&remove=<?php echo $item->nivoslider4wp_id; ?>"><img src="<?php echo $ns4wp_pluginurl."/img/remove.png" ?>" alt="<?php _e('Remove','nivoslider4wp'); ?>" title="<?php _e('Remove','nivoslider4wp'); ?>" /></a>
 			<a href="admin.php?page=nivo-slider-for-wordpress/nivoslider4wp.php&disable=<?php echo $item->nivoslider4wp_id; ?>"><img src="<?php echo $ns4wp_pluginurl."/img/disable.png" ?>" alt="<?php _e('Disable','nivoslider4wp'); ?>" title="<?php _e('Disable','nivoslider4wp'); ?>" /></a>
@@ -358,7 +460,7 @@
             </small></td>
         </tr>
         <?php endforeach; ?>
-        
+
         <?php else : ?>
         <tr>
           <td colspan="3"><?php _e('No images uploaded yet.','nivoslider4wp'); ?></td>
@@ -366,7 +468,7 @@
         <?php endif; ?>
       </tbody>
     </table>
-	<h3>Desabilitados</h3>
+	<h3>Disabled</h3>
 	<?php $items_desable = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}nivoslider4wp WHERE nivoslider4wp_image_status=0 ORDER BY nivoslider4wp_order,nivoslider4wp_id ASC"); ?>
 	<table class="widefat disabled" cellspacing="0">
       <thead>
@@ -387,7 +489,7 @@
       </tfoot>
         <style>
             .tDnD_whileDrag{background:#ececec;}
-        </style>		 
+        </style>
       <tbody id="table-1">
         <?php if ($items_desable) : ?>
         <?php foreach ($items_desable as $item_desable) : ?>
@@ -400,7 +502,7 @@
 			<?php _e('Image Link to :','nivoslider4wp'); ?><a href="<?php echo stripslashes($item_desable->nivoslider4wp_image_link); ?>"><?php echo stripslashes($item_desable->nivoslider4wp_image_link); ?></a>
 			<?php } ?>
 			</td>
-          <td><small> 
+          <td><small>
 			<a href="admin.php?page=nivo-slider-for-wordpress/nivoslider4wp.php&edit=<?php echo $item_desable->nivoslider4wp_id; ?>"><img src="<?php echo $ns4wp_pluginurl."/img/edit.png" ?>" alt="<?php _e('Edit','nivoslider4wp'); ?>" title="<?php _e('Edit','nivoslider4wp'); ?>" /></a>
 			<a href="admin.php?page=nivo-slider-for-wordpress/nivoslider4wp.php&remove=<?php echo $item_desable->nivoslider4wp_id; ?>"><img src="<?php echo $ns4wp_pluginurl."/img/remove.png" ?>" alt="<?php _e('Remove','nivoslider4wp'); ?>" title="<?php _e('Remove','nivoslider4wp'); ?>" /></a>
 			<a href="admin.php?page=nivo-slider-for-wordpress/nivoslider4wp.php&enable=<?php echo $item_desable->nivoslider4wp_id; ?>"><img src="<?php echo $ns4wp_pluginurl."/img/enable.png" ?>" alt="<?php _e('Enable','nivoslider4wp'); ?>" title="<?php _e('Enable','nivoslider4wp'); ?>" /></a>
@@ -410,7 +512,7 @@
             </small></td>
         </tr>
         <?php endforeach; ?>
-        
+
         <?php else : ?>
         <tr>
           <td colspan="3"><?php _e('No images uploaded yet.','nivoslider4wp'); ?></td>

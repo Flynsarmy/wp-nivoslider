@@ -8,9 +8,17 @@
 		global $wpdb;
 		$ns4wp_plugindir = ABSPATH.'wp-content/plugins/nivo-slider-for-wordpress/';
 		$ns4wp_pluginurl = $url;
-		$ns4wp_filesdir = ABSPATH.'/wp-content/uploads/nivoslider4wp_files/';
-		$ns4wp_filesurl = get_option('siteurl').'/wp-content/uploads/nivoslider4wp_files/';
 
+		//$ns4wp_filesdir = ABSPATH.'/wp-content/uploads/nivoslider4wp_files/';
+		//$ns4wp_filesurl = get_option('siteurl').'/wp-content/uploads/nivoslider4wp_files/';
+
+		/* BEGIN S3 stuff */
+		$ns4wp_relativefiledir = '/wp-content/uploads/nivoslider4wp_files/';
+		$ns4wp_filesdir = realpath(ABSPATH.$ns4wp_relativefiledir).'/';
+		$ns4wp_filesurl = get_option('nivoslider4wp_aws') && get_option('nivoslider4wp_awsDomain') ?
+			(rtrim(get_option('nivoslider4wp_awsDomain'), '/') . $ns4wp_relativefiledir) :
+			(get_option('siteurl').$ns4wp_relativefiledir);
+		/* END S3 stuff */
 	?>
 	<div id="slider">
 				<?php $items = $wpdb->get_results("SELECT nivoslider4wp_id,nivoslider4wp_type,nivoslider4wp_text_headline,nivoslider4wp_image_link,nivoslider4wp_image_status FROM {$wpdb->prefix}nivoslider4wp WHERE nivoslider4wp_image_status = 1 OR nivoslider4wp_image_status IS NULL ORDER BY nivoslider4wp_order,nivoslider4wp_id"); ?>

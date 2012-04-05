@@ -29,7 +29,7 @@ var $z = jQuery.noConflict();
 		$z('.Multiple').jPicker({window:{title:'<?php _e('Drag Markers To Pick A Color','nivoslider4wp'); ?>'}});
 	});
 </script>
-	
+
 <script type="text/javascript">
 	var $d = jQuery.noConflict();
 	$d(document).ready(function () {
@@ -54,37 +54,44 @@ var $z = jQuery.noConflict();
 	if (isset($_POST['options'])) {
 	update_option('nivoslider4wp_width', $_POST['nivoslider4wp_width']);
 	update_option('nivoslider4wp_height', $_POST['nivoslider4wp_height']);
-	
+
 	update_option('nivoslider4wp_colsBox', $_POST['nivoslider4wp_colsBox']);
 	update_option('nivoslider4wp_rowsBox', $_POST['nivoslider4wp_rowsBox']);
 	update_option('nivoslider4wp_effect', $_POST['nivoslider4wp_effect']);
-	update_option('nivoslider4wp_animSpeed', $_POST['nivoslider4wp_animSpeed']);			
-	update_option('nivoslider4wp_pauseTime', $_POST['nivoslider4wp_pauseTime']);			
-	update_option('nivoslider4wp_directionNav', $_POST['nivoslider4wp_directionNav']);			
-	update_option('nivoslider4wp_directionNavHide', $_POST['nivoslider4wp_directionNavHide']);			
-	update_option('nivoslider4wp_controlNav', $_POST['nivoslider4wp_controlNav']);			
-	update_option('nivoslider4wp_keyboardNav', $_POST['nivoslider4wp_keyboardNav']);			
-	update_option('nivoslider4wp_pauseOnHover', $_POST['nivoslider4wp_pauseOnHover']);			
-	update_option('nivoslider4wp_manualAdvance', $_POST['nivoslider4wp_manualAdvance']);			
-	
-	update_option('nivoslider4wp_backgroundCaption', $_POST['nivoslider4wp_backgroundCaption']);			
-	update_option('nivoslider4wp_colorCaption', $_POST['nivoslider4wp_colorCaption']);			
-	update_option('nivoslider4wp_captionOpacity', $_POST['nivoslider4wp_captionOpacity']);	
-	
-	update_option('nivoslider4wp_js', $_POST['nivoslider4wp_js']);	
+	update_option('nivoslider4wp_animSpeed', $_POST['nivoslider4wp_animSpeed']);
+	update_option('nivoslider4wp_pauseTime', $_POST['nivoslider4wp_pauseTime']);
+	update_option('nivoslider4wp_directionNav', $_POST['nivoslider4wp_directionNav']);
+	update_option('nivoslider4wp_directionNavHide', $_POST['nivoslider4wp_directionNavHide']);
+	update_option('nivoslider4wp_controlNav', $_POST['nivoslider4wp_controlNav']);
+	update_option('nivoslider4wp_keyboardNav', $_POST['nivoslider4wp_keyboardNav']);
+	update_option('nivoslider4wp_pauseOnHover', $_POST['nivoslider4wp_pauseOnHover']);
+	update_option('nivoslider4wp_manualAdvance', $_POST['nivoslider4wp_manualAdvance']);
+
+	update_option('nivoslider4wp_aws', $_POST['nivoslider4wp_aws']);
+	update_option('nivoslider4wp_awsAccessKey', $_POST['nivoslider4wp_awsAccessKey']);
+	if ( isset($_POST['nivoslider4wp_awsSecretKey']) && $_POST['nivoslider4wp_awsSecretKey'] != '-- not shown --' )
+		update_option('nivoslider4wp_awsSecretKey', $_POST['nivoslider4wp_awsSecretKey']);
+	update_option('nivoslider4wp_awsBucket', $_POST['nivoslider4wp_awsBucket']);
+	update_option('nivoslider4wp_awsDomain', $_POST['nivoslider4wp_awsDomain']);
+
+	update_option('nivoslider4wp_backgroundCaption', $_POST['nivoslider4wp_backgroundCaption']);
+	update_option('nivoslider4wp_colorCaption', $_POST['nivoslider4wp_colorCaption']);
+	update_option('nivoslider4wp_captionOpacity', $_POST['nivoslider4wp_captionOpacity']);
+
+	update_option('nivoslider4wp_js', $_POST['nivoslider4wp_js']);
 		if($_POST['nivoslider4wp_imageQuality'] > 100)
 		{
-			update_option('nivoslider4wp_imageQuality', 100);			
+			update_option('nivoslider4wp_imageQuality', 100);
 		}
 		else
 		{
-			update_option('nivoslider4wp_imageQuality', $_POST['nivoslider4wp_imageQuality']);			
+			update_option('nivoslider4wp_imageQuality', $_POST['nivoslider4wp_imageQuality']);
 		}
 	}
 ?>
 
 <div class="wrap">
-<h2 id="all-schemes"><?php _e('Nivo Slider For WordPress - Options','nivoslider4wp'); ?></h2> 
+<h2 id="all-schemes"><?php _e('Nivo Slider For WordPress - Options','nivoslider4wp'); ?></h2>
 <?php
 if (isset($_POST['options'])) {
 	echo "<div class=\"alert\">";
@@ -129,7 +136,7 @@ if (isset($_POST['options'])) {
 					{
 				?>
 					<option value="<?php echo $i;?>" <?php if(get_option('nivoslider4wp_colsBox') == ''.$i.''){echo 'selected';}?>><?php echo $i;?></option>
-				<?php	
+				<?php
 					}
 				?>
 				</select>
@@ -140,7 +147,7 @@ if (isset($_POST['options'])) {
 					{
 				?>
 					<option value="<?php echo $i;?>" <?php if(get_option('nivoslider4wp_rowsBox') == ''.$i.''){echo 'selected';}?>><?php echo $i;?></option>
-				<?php	
+				<?php
 					}
 				?>
 				</select>
@@ -191,6 +198,39 @@ if (isset($_POST['options'])) {
 				</select>
 				<small><?php _e('It is recommended to load the JavaScript in the <strong>footer</strong> because it allows a faster loading page, but the slider is loaded last. ','nivoslider4wp'); ?></small>
 			</label>
+			<input type="submit" name="options" value="<?php _e('Save','nivoslider4wp'); ?>" class="button-primary action" />
+		</fieldset>
+
+		<fieldset>
+			<legend><?php _e('Amazon CloudFront','nivoslider4wp'); ?></legend>
+			<label><input type="checkbox" name="nivoslider4wp_aws" id="nivoslider4wp_aws" value="1" <?php if ( get_option('nivoslider4wp_aws') ) echo 'checked="checked"' ?> style='width:auto' /> <?php _e('Use Amazon CloudFront','nivoslider4wp'); ?> <small><?php _e('','nivoslider4wp'); ?></small></label>
+			<label><?php _e('AWS Access Key ID','nivoslider4wp'); ?>:<input type="text" name="nivoslider4wp_awsAccessKey" id="nivoslider4wp_awsAccessKey" value="<?php echo get_option('nivoslider4wp_awsAccessKey'); ?>" /><small><?php _e('','nivoslider4wp'); ?></small></label>
+			<label><?php _e('Secret Key','nivoslider4wp'); ?>:<input type="text" name="nivoslider4wp_awsSecretKey" id="nivoslider4wp_awsSecretKey" value="<?php echo get_option('nivoslider4wp_awsSecretKey') ? '-- not shown --' : ''; ?>" /><small><?php _e('','nivoslider4wp'); ?></small></label>
+			<label><?php _e('CloudFront Domain','nivoslider4wp'); ?>:<input type="text" name="nivoslider4wp_awsDomain" id="nivoslider4wp_awsDomain" value="<?php echo get_option('nivoslider4wp_awsDomain'); ?>" /><small><?php _e('Eg http://foobar.cloudfront.net','nivoslider4wp'); ?></small></label>
+			<?php
+				if ( get_option('nivoslider4wp_aws') && get_option('nivoslider4wp_awsAccessKey') && get_option('nivoslider4wp_awsSecretKey') ):
+					require_once(dirname(__FILE__).'/lib.s3.php');
+					$s3 = new TanTanS3(get_option('nivoslider4wp_awsAccessKey'), get_option('nivoslider4wp_awsSecretKey'));
+
+					//If no buckets found, invalid credentials
+					if ( !($buckets = $s3->listBuckets()) ):
+						?><div align='center' style='color:red'>Error, invalid S3 credentials.</div><?php
+					//Buckets found - valid S3 credentials
+					else:
+			?>
+				<label><?php _e('Use this bucket','nivoslider4wp'); ?>:
+					<select name='nivoslider4wp_awsBucket' id='nivoslider4wp_awsBucket'>
+						<option value=''>-- Select --</option>
+						<?php foreach ( $buckets as $bucket ): ?>
+							<option value="<?= $bucket ?>" <?php if ( get_option('nivoslider4wp_awsBucket') == $bucket ) echo 'selected="selected"' ?>><?= $bucket ?></option>
+						<?php endforeach; ?>
+					</select>
+				</label>
+
+			<?php
+					endif;
+				endif;
+			?>
 			<input type="submit" name="options" value="<?php _e('Save','nivoslider4wp'); ?>" class="button-primary action" />
 		</fieldset>
     </form>
